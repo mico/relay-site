@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Relay — Claude trades. The relay holds the stop.</title>
 <meta name="description" content="An AI trading desk on Binance perps: Claude scans the board every fifteen minutes and trades by a playbook the server computes. The relay places the orders and can only ever tighten a stop.">
+<link rel="canonical" href="https://relay4.xyz/">
 <meta name="theme-color" content="#0e1116">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -146,7 +147,7 @@
       <a href="#desk">AI desk</a>
       <a href="#mcp">MCP</a>
       <a href="#bots">Bots</a>
-      <a class="go" href="https://trade4.xyz">Open Relay →</a>
+      <a class="go" href="https://app.relay4.xyz">Open Relay →</a>
     </nav>
   </div>
 </header>
@@ -158,7 +159,7 @@
         <h1>Claude trades.<br><em>The relay holds the stop.</em></h1>
         <p class="lede">It scans the whole board every fifteen minutes, enters by a playbook the server computes, and can only ever tighten a stop. Paper first; real money only at the grades you pick.</p>
         <div class="ctas">
-          <a class="btn primary" href="https://trade4.xyz">Open Relay</a>
+          <a class="btn primary" href="https://app.relay4.xyz">Open Relay</a>
           <a class="btn" href="#mcp">Connect Claude</a>
         </div>
       </div>
@@ -206,10 +207,10 @@
       <h2>Plug Claude into your account.</h2>
       <p class="intro">Relay speaks the Model Context Protocol. Make a token under <b>Keys &amp; account → Agent tokens</b>, choose which accounts it may see, and run your own playbook pass from a chat. A full pass is about eight calls.</p>
       <div class="code">
-        <button class="copy" type="button" data-copy="claude mcp add --transport http trade4 https://trade4.xyz/mcp --header &quot;Authorization: Bearer sct_…&quot;">Copy</button>
+        <button class="copy" type="button" data-copy="claude mcp add --transport http relay https://app.relay4.xyz/mcp --header &quot;Authorization: Bearer sct_…&quot;">Copy</button>
 <pre><span class="c"># Claude Code</span>
 claude mcp add --transport http \
-  trade4 https://trade4.xyz/mcp \
+  relay https://app.relay4.xyz/mcp \
   --header <span class="s">"Authorization: Bearer sct_…"</span></pre>
       </div>
       <div class="tools">
@@ -259,7 +260,7 @@ claude mcp add --transport http \
 <footer>
   <div class="wrap">
     <p>Relay places orders on Binance USDT-M futures with your own API keys. Leveraged futures can lose more than you expect, quickly. Nothing here is financial advice, and this page deliberately shows no performance figures.</p>
-    <nav><a href="https://trade4.xyz">Open Relay</a><a href="#mcp">MCP</a></nav>
+    <nav><a href="https://app.relay4.xyz">Open Relay</a><a href="#mcp">MCP</a></nav>
   </div>
 </footer>
 
