@@ -238,35 +238,6 @@
   </div>
   </div>
 
-  <p class="cmd" id="access"><span class="u">relay@trade4</span>:<span class="p">~</span>$ <span class="c" data-type>relay request-access</span></p>
-  <div class="out">
-    <form class="box js-lead" action="#" novalidate>
-      <div class="t"><span><b>Invite-only</b> · one email when your seat opens</span></div>
-      <div class="prompt">
-        <label for="email1">email:</label>
-        <input id="email1" type="email" name="email" placeholder="you@email.com" autocomplete="email" required>
-        <input class="hp" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <input type="hidden" name="source" value="top">
-        <button type="submit">⏎ SUBMIT</button>
-      </div>
-      <div class="note" role="status"></div>
-    </form>
-  </div>
-
-  <p class="cmd" id="desk"><span class="u">relay@trade4</span>:<span class="p">~</span>$ <span class="c" data-type>relay desk status</span></p>
-  <div class="out hide">
-    <div class="box">
-      <div class="t"><span><b>AI desk</b> · on · paper + real money</span><span class="r">● live</span></div>
-      <table class="kv" style="margin-top:8px">
-        <tr><td>scans</td><td><span class="br" id="perpsB">all</span> perps · every <span class="br">15m</span> · next <span class="br" id="nextScan">:00</span></td></tr>
-        <tr><td>models</td><td>a small model triages the board · a stronger one decides · the server does the arithmetic</td></tr>
-        <tr><td>playbook</td><td>key level, stop, targets, R and max leverage computed in code · graded <span class="up">A</span> / B / C · a C is never traded</td></tr>
-        <tr><td>real money</td><td>copies paper entries at the grades you pick, at the risk you type</td></tr>
-        <tr><td>a full pass</td><td><span class="br">8</span> tool calls · ~7k tokens</td></tr>
-      </table>
-    </div>
-  </div>
-
   <p class="cmd"><span class="u">relay@trade4</span>:<span class="p">~</span>$ <span class="c" data-type>relay desk tail -f</span></p>
   <div class="out hide">
     <div class="box">
@@ -283,6 +254,40 @@
         <li><span class="t">14:15</span><span>health: <span class="up">alive</span> · <span class="br">+1.1R</span> · stop → <span class="br">0.3101</span>, under the swing low</span></li>
         <li><span class="t">14:58</span><span><span class="up">TARGET</span> ARB long · <span class="up">+2.6R</span> · closed by the exchange</span></li>
       </ol>
+    </div>
+  </div>
+
+  <p class="cmd" id="mcp"><span class="u">relay@trade4</span>:<span class="p">~</span>$ <span class="c" data-type>claude</span></p>
+  <div class="out hide">
+    <div class="box">
+      <div class="t"><span><b>Claude Code</b> · connected to relay over MCP</span></div>
+      <div class="cc" id="cc">
+        <div class="q">anything worth a long right now?</div>
+        <div class="tool"><span class="fn">relay - scan_packet</span><span class="res">9 setups · 6 dropped · BTC grinding up</span></div>
+        <div class="tool"><span class="fn">relay - coin_brief</span> (ARB, PYTH, W)<span class="res">3 coins digested</span></div>
+        <div class="tool"><span class="fn">relay - entry_check</span> (ARBUSDT, long)<span class="res">6 of 7 checks pass</span></div>
+        <div class="tool"><span class="fn">relay - plan</span> (ARBUSDT, long)<span class="res">stop under the key · 2.6R to the measured move</span></div>
+        <div class="ans">ARB is holding its breakout with spot buying behind it — a grade A.
+          <div class="plan"><span><small>ENTRY</small><b class="br">0.3112</b></span><span><small>STOP</small><b class="br">0.3064</b></span><span><small>TARGET</small><b class="br">0.3239</b></span><span><small>R</small><b class="up">2.6</b></span></div>
+        </div>
+        <div class="q gap">put it on paper</div>
+        <div class="tool"><span class="fn">relay - propose_trade</span> (ARBUSDT, long, grade A)<span class="res">on the desk · stop and target resting</span></div>
+      </div>
+      <div class="install"><code><span class="lb">$ </span>claude mcp add --transport http relay https://app.trade4.xyz/mcp</code><button class="copy" type="button" data-copy="claude mcp add --transport http relay https://app.trade4.xyz/mcp --header &quot;Authorization: Bearer sct_…&quot;">COPY</button></div>
+    </div>
+  </div>
+
+  <p class="cmd" id="desk"><span class="u">relay@trade4</span>:<span class="p">~</span>$ <span class="c" data-type>relay desk status</span></p>
+  <div class="out hide">
+    <div class="box">
+      <div class="t"><span><b>AI desk</b> · on · paper + real money</span><span class="r">● live</span></div>
+      <table class="kv" style="margin-top:8px">
+        <tr><td>scans</td><td><span class="br" id="perpsB">all</span> perps · every <span class="br">15m</span> · next <span class="br" id="nextScan">:00</span></td></tr>
+        <tr><td>models</td><td>a small model triages the board · a stronger one decides · the server does the arithmetic</td></tr>
+        <tr><td>playbook</td><td>key level, stop, targets, R and max leverage computed in code · graded <span class="up">A</span> / B / C · a C is never traded</td></tr>
+        <tr><td>real money</td><td>copies paper entries at the grades you pick, at the risk you type</td></tr>
+        <tr><td>a full pass</td><td><span class="br">8</span> tool calls · ~7k tokens</td></tr>
+      </table>
     </div>
   </div>
 
@@ -318,26 +323,6 @@
         <li><span><b>no custody, no withdrawals</b> <span>— your keys, sealed on the box</span></span></li>
         <li><span><b>keys live in memory</b> <span>— a stolen disk opens nothing</span></span></li>
       </ul>
-    </div>
-  </div>
-
-  <p class="cmd" id="mcp"><span class="u">relay@trade4</span>:<span class="p">~</span>$ <span class="c" data-type>claude</span></p>
-  <div class="out hide">
-    <div class="box">
-      <div class="t"><span><b>Claude Code</b> · connected to relay over MCP</span></div>
-      <div class="cc" id="cc">
-        <div class="q">anything worth a long right now?</div>
-        <div class="tool"><span class="fn">relay - scan_packet</span><span class="res">9 setups · 6 dropped · BTC grinding up</span></div>
-        <div class="tool"><span class="fn">relay - coin_brief</span> (ARB, PYTH, W)<span class="res">3 coins digested</span></div>
-        <div class="tool"><span class="fn">relay - entry_check</span> (ARBUSDT, long)<span class="res">6 of 7 checks pass</span></div>
-        <div class="tool"><span class="fn">relay - plan</span> (ARBUSDT, long)<span class="res">stop under the key · 2.6R to the measured move</span></div>
-        <div class="ans">ARB is holding its breakout with spot buying behind it — a grade A.
-          <div class="plan"><span><small>ENTRY</small><b class="br">0.3112</b></span><span><small>STOP</small><b class="br">0.3064</b></span><span><small>TARGET</small><b class="br">0.3239</b></span><span><small>R</small><b class="up">2.6</b></span></div>
-        </div>
-        <div class="q gap">put it on paper</div>
-        <div class="tool"><span class="fn">relay - propose_trade</span> (ARBUSDT, long, grade A)<span class="res">on the desk · stop and target resting</span></div>
-      </div>
-      <div class="install"><code><span class="lb">$ </span>claude mcp add --transport http relay https://app.trade4.xyz/mcp</code><button class="copy" type="button" data-copy="claude mcp add --transport http relay https://app.trade4.xyz/mcp --header &quot;Authorization: Bearer sct_…&quot;">COPY</button></div>
     </div>
   </div>
 
@@ -381,7 +366,7 @@
     </div>
   </div>
 
-  <p class="cmd"><span class="u">relay@trade4</span>:<span class="p">~</span>$ <span class="c" data-type>relay request-access</span></p>
+  <p class="cmd" id="access"><span class="u">relay@trade4</span>:<span class="p">~</span>$ <span class="c" data-type>relay request-access</span></p>
   <div class="out hide">
     <form class="box js-lead" action="#" novalidate>
       <div class="t"><span><b>Let Claude take the next trade</b></span></div>
