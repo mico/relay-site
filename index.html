@@ -56,6 +56,27 @@
   h1 em { font-style: normal; color: var(--accent); }
   .lede { color: var(--text2); margin: 20px 0 0; max-width: 34em; }
 
+  /* The login screen's ambient BTC line (GateAside.svelte in relay-terminal):
+     a day at 15 minutes, the close, an EMA dashed behind it, the area filled.
+     A texture behind the type, not a chart anyone reads a level off. */
+  .hero { position: relative; overflow: hidden; }
+  .hero > .wrap { position: relative; z-index: 1; }
+  .spark { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: 0; transition: opacity 1.2s; }
+  .spark.on { opacity: .5; }
+  .spark line { stroke: #171d29; stroke-width: 1; }
+  .spark .area { fill: #131b26; stroke: none; }
+  .spark .line { fill: none; stroke: #2f9e73; stroke-width: 1.4; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .spark .ema { fill: none; stroke: #3a4257; stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+  .spark-fade { position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(11,15,22,.55) 0%, rgba(11,15,22,.10) 45%, rgba(11,15,22,.90) 100%); }
+  @media (max-width: 640px) {
+    .spark { bottom: auto; height: 460px; }
+    .spark.on { opacity: .35; }
+    .spark-fade { background: linear-gradient(180deg, rgba(11,15,22,.55) 0%, rgba(11,15,22,.10) 30%, rgba(11,15,22,.85) 440px, var(--bg) 460px); }
+    .spark-tag { top: 436px; bottom: auto; }
+  }
+  .spark-tag { position: absolute; right: var(--gut); bottom: 12px; z-index: 1; font-size: 10.5px; color: var(--label); letter-spacing: .08em; text-transform: uppercase; }
+
   /* the desk log */
   .log { background: var(--field-bg); border: 1px solid var(--border); min-width: 0; }
   .log-head { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; background: var(--panel);
@@ -154,6 +175,14 @@
 
 <main>
   <div class="hero">
+    <svg class="spark" id="spark" viewBox="0 0 1000 420" preserveAspectRatio="none" aria-hidden="true">
+      <line x1="0" y1="40" x2="1000" y2="40" /><line x1="0" y1="110" x2="1000" y2="110" />
+      <line x1="0" y1="180" x2="1000" y2="180" /><line x1="0" y1="250" x2="1000" y2="250" />
+      <line x1="0" y1="320" x2="1000" y2="320" /><line x1="0" y1="390" x2="1000" y2="390" />
+      <polyline class="area" /><polyline class="line" /><polyline class="ema" />
+    </svg>
+    <div class="spark-fade"></div>
+    <span class="spark-tag" id="spark-tag" hidden>BTC · 15m · last 24h</span>
     <div class="wrap">
       <div>
         <h1>Claude trades.<br><em>The relay holds the stop.</em></h1>
@@ -276,6 +305,45 @@ claude mcp add --transport http \
       lines[i++].classList.add('on');
       setTimeout(next, i === 6 || i === 7 ? 900 : 520);
     })();
+  })();
+
+  // BTC behind the hero, from Binance's public futures API, as the login
+  // screen draws it. Nothing is drawn until the candles land: where Binance
+  // is blocked the hero is plain, rather than showing an invented line.
+  (function () {
+    var svg = document.getElementById('spark'), tag = document.getElementById('spark-tag');
+    var URL_ = 'https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=15m&limit=90';
+    function draw(closes) {
+      var k = 2 / 15, e = closes[0], ema = closes.map(function (c, i) { return e = i ? c * k + e * (1 - k) : c; });
+      var min = Math.min.apply(null, closes.concat(ema)), max = Math.max.apply(null, closes.concat(ema));
+      var pad = (max - min) * 0.055 || 1, lo = min - pad, hi = max + pad;
+      var pts = function (s) { return s.map(function (p, i) {
+        return (i * 1000 / (s.length - 1)).toFixed(1) + ',' + ((1 - (p - lo) / (hi - lo)) * 400 + 10).toFixed(1);
+      }).join(' '); };
+      var line = pts(closes);
+      svg.querySelector('.line').setAttribute('points', line);
+      svg.querySelector('.ema').setAttribute('points', pts(ema));
+      svg.querySelector('.area').setAttribute('points', '0,420 ' + line + ' 1000,420');
+      svg.classList.add('on'); tag.hidden = false;
+    }
+    // A phone's hero is tall and narrow: a whole day there is a comb of
+    // spikes, so it draws the last twelve hours.
+    var phone = window.matchMedia('(max-width: 640px)'), last = null;
+    function fit() {
+      if (!last) return;
+      draw(phone.matches ? last.slice(-48) : last);
+      tag.textContent = 'BTC · 15m · last ' + (phone.matches ? '12h' : '24h');
+    }
+    try { phone.addEventListener('change', fit); } catch (e) {}
+    function read() {
+      fetch(URL_).then(function (r) { return r.ok ? r.json() : null; }).then(function (rows) {
+        if (!Array.isArray(rows)) return;
+        var closes = rows.map(function (b) { return +b[4]; }).filter(function (c) { return isFinite(c) && c > 0; });
+        if (closes.length > 1) { last = closes; fit(); }
+      }).catch(function () {});
+    }
+    read();
+    setInterval(function () { if (!document.hidden) read(); }, 60000);
   })();
 
   document.querySelectorAll('.copy').forEach(function (b) {
