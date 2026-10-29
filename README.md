@@ -1,6 +1,6 @@
 # Relay — landing page
 
-The public landing page for Relay (relay4.xyz; the app is app.relay4.xyz). One static `index.html`, no build; served by GitHub Pages from `main`.
+The public landing page for Relay (trade4.xyz; the app is app.trade4.xyz). One static `index.html`, no build; served by GitHub Pages from `main`.
 
 Preview locally:
 
