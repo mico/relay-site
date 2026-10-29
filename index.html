@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Relay — Claude trades. The relay holds the stop.</title>
+<meta name="description" content="An AI trading desk on Binance perps: Claude scans the board every fifteen minutes and trades by a playbook the server computes. The relay places the orders and can only ever tighten a stop.">
+<meta name="theme-color" content="#0e1116">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* Relay's own palette: design/tokens.css in relay-terminal. */
+  :root {
+    --bg: #0e1116; --panel: #151a26; --panel2: #1c2231; --well: #0e121b; --field-bg: #0b0e14;
+    --border: #242a3a; --border-faint: #1c2130;
+    --bright: #eef1f7; --text: #d6dae4; --text2: #a8b0c2; --muted: #8a93a7; --label: #6b7488;
+    --accent: #4b7dff; --green: #3fd68a; --red: #ef6069; --amber: #d3a44a;
+    --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    --wrap: 1120px; --gut: 16px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--mono); }
+  a { color: inherit; }
+  .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gut); }
+  @media (min-width: 641px) { :root { --gut: 32px; } }
+
+  /* top bar */
+  .bar { border-bottom: 1px solid var(--border); background: var(--panel); }
+  .bar .wrap { display: flex; align-items: center; justify-content: space-between; height: 52px; }
+  .mark { font-weight: 700; color: var(--bright); letter-spacing: .14em; text-transform: uppercase; font-size: 14px; text-decoration: none; }
+  .mark span { color: var(--accent); }
+  .bar nav { display: flex; gap: 20px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+  .mark, .bar nav a { min-height: 44px; display: inline-flex; align-items: center; }
+  .bar nav a { color: var(--muted); text-decoration: none; }
+  .bar nav a:hover { color: var(--bright); }
+  @media (max-width: 640px) { .bar nav a:not(.go) { display: none; } }
+
+  /* buttons */
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px;
+         border: 1px solid #3a4257; color: var(--bright); text-decoration: none; font-size: 13px;
+         text-transform: uppercase; letter-spacing: .08em; background: transparent; }
+  .btn:hover { border-color: var(--text2); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 700; }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+  @media (max-width: 640px) { .ctas .btn { flex: 1 1 100%; } }
+
+  /* hero */
+  .hero { padding: 56px 0 64px; border-bottom: 1px solid var(--border); }
+  .hero .wrap { display: grid; gap: 40px; }
+  @media (min-width: 1024px) { .hero .wrap { grid-template-columns: 1fr 1.05fr; align-items: center; gap: 56px; } .hero { padding: 96px 0; } }
+  h1 { color: var(--bright); font-size: clamp(28px, 6.4vw, 46px); line-height: 1.12; margin: 0; letter-spacing: -.01em; font-weight: 700; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .lede { color: var(--text2); margin: 20px 0 0; max-width: 34em; }
+
+  /* the desk log */
+  .log { background: var(--field-bg); border: 1px solid var(--border); min-width: 0; }
+  .log-head { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; background: var(--panel);
+              border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--label); }
+  .log-head b { color: var(--green); font-weight: 500; }
+  .log-head b::before { content: "● "; }
+  .log ol { list-style: none; margin: 0; padding: 14px; font-size: 12.5px; line-height: 1.75; min-height: 21.5em; }
+  .log li { display: grid; grid-template-columns: 5ch 1fr; gap: 1.2ch; opacity: 0; transform: translateY(3px); transition: opacity .35s, transform .35s; }
+  .log li.on { opacity: 1; transform: none; }
+  .log .t { color: var(--label); }
+  .log .m { color: var(--text); overflow-wrap: anywhere; }
+  .log .k { color: var(--accent); }
+  .log .up { color: var(--green); }
+  .log .dn { color: var(--red); }
+  .log .am { color: var(--amber); }
+  .log .num { color: var(--bright); }
+  .log-foot { padding: 8px 14px; border-top: 1px solid var(--border-faint); font-size: 11px; color: var(--label); }
+  @media (max-width: 640px) { .log ol { font-size: 12px; min-height: 26em; } }
+
+  /* sections */
+  section { padding: 72px 0; border-bottom: 1px solid var(--border); }
+  .eyebrow { font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: .12em; margin: 0 0 12px; }
+  h2 { color: var(--bright); font-size: clamp(22px, 4.4vw, 32px); line-height: 1.2; margin: 0 0 16px; font-weight: 700; }
+  .intro { color: var(--text2); max-width: 44em; margin: 0 0 40px; }
+  h3 { color: var(--bright); font-size: 15px; margin: 0 0 8px; font-weight: 700; }
+  p { margin: 0 0 12px; }
+
+  .grid { display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); }
+  @media (min-width: 641px) { .grid.c2 { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1024px) { .grid.c3 { grid-template-columns: repeat(3, 1fr); } .grid.c4 { grid-template-columns: repeat(4, 1fr); } }
+  @media (min-width: 641px) and (max-width: 1023px) { .grid.c3, .grid.c4 { grid-template-columns: 1fr 1fr; } }
+  .cell { background: var(--bg); padding: 24px; }
+  .cell p { color: var(--text2); font-size: 14px; margin: 0; }
+  .cell .n { font-size: 11px; color: var(--label); letter-spacing: .1em; margin-bottom: 14px; display: block; }
+
+  /* the rails strip */
+  .rails { margin-top: 32px; display: grid; gap: 12px; }
+  @media (min-width: 1024px) { .rails { grid-template-columns: repeat(3, 1fr); } }
+  .rail { border-left: 2px solid var(--green); padding: 4px 0 4px 16px; color: var(--text2); font-size: 14px; }
+  .rail b { color: var(--bright); font-weight: 500; display: block; }
+
+  /* MCP */
+  .code { background: var(--field-bg); border: 1px solid var(--border); margin: 0 0 32px; position: relative; }
+  .code pre { margin: 0; padding: 18px 18px; overflow-x: auto; font-size: 13px; line-height: 1.7; color: var(--text); }
+  .code .c { color: var(--label); }
+  .code .s { color: var(--green); }
+  .copy { position: absolute; top: 8px; right: 8px; min-height: 44px; min-width: 64px; background: var(--panel);
+          border: 1px solid var(--border); color: var(--muted); font: 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; cursor: pointer; }
+  .copy:hover { color: var(--bright); }
+  .tools { display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); }
+  @media (min-width: 641px) { .tools { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1024px) { .tools { grid-template-columns: repeat(3, 1fr); } }
+  .tool { background: var(--bg); padding: 14px 18px; font-size: 13px; color: var(--text2); }
+  .tool code { color: var(--accent); display: block; font-size: 13px; margin-bottom: 2px; }
+  .tool.w code { color: var(--amber); }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 14px; font-size: 12px; color: var(--muted); }
+  .legend i { font-style: normal; color: var(--accent); }
+  .legend i.w { color: var(--amber); }
+
+  /* pipeline */
+  .pipe { display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); counter-reset: s; }
+  @media (min-width: 1024px) { .pipe { grid-template-columns: repeat(4, 1fr); } }
+  .pipe .cell { position: relative; }
+  .pipe .cell::before { counter-increment: s; content: "0" counter(s); display: block; font-size: 11px; color: var(--label); letter-spacing: .1em; margin-bottom: 14px; }
+  .tag { display: inline-block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; padding: 2px 7px; border: 1px solid; margin-bottom: 10px; }
+  .tag.paper { color: var(--accent); border-color: rgba(75,125,255,.4); }
+  .tag.live { color: var(--amber); border-color: rgba(211,164,74,.4); }
+
+  /* small tiles */
+  .also .cell { padding: 20px; }
+
+  footer { padding: 40px 0 calc(40px + env(safe-area-inset-bottom)); color: var(--label); font-size: 12px; }
+  footer .wrap { display: grid; gap: 16px; }
+  @media (min-width: 1024px) { footer .wrap { grid-template-columns: 1fr auto; } }
+  footer p { max-width: 60em; margin: 0; }
+  footer nav { display: flex; gap: 20px; flex-wrap: wrap; }
+  footer nav a { color: var(--muted); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+  footer nav a:hover { color: var(--bright); }
+
+  @media (prefers-reduced-motion: reduce) { .log li { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="mark" href="#">Relay<span>_</span></a>
+    <nav>
+      <a href="#desk">AI desk</a>
+      <a href="#mcp">MCP</a>
+      <a href="#bots">Bots</a>
+      <a class="go" href="https://trade4.xyz">Open Relay →</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="wrap">
+      <div>
+        <h1>Claude trades.<br><em>The relay holds the stop.</em></h1>
+        <p class="lede">It scans the whole board every fifteen minutes, enters by a playbook the server computes, and can only ever tighten a stop. Paper first; real money only at the grades you pick.</p>
+        <div class="ctas">
+          <a class="btn primary" href="https://trade4.xyz">Open Relay</a>
+          <a class="btn" href="#mcp">Connect Claude</a>
+        </div>
+      </div>
+
+      <div class="log" aria-label="An example pass of the AI desk">
+        <div class="log-head"><span>ai desk · binance usdt-m</span><b>paper</b></div>
+        <ol id="log">
+          <li><span class="t">14:00</span><span class="m">board refreshed · <span class="num">312</span> perps</span></li>
+          <li><span class="t">14:00</span><span class="m"><span class="k">scan_packet</span> → <span class="num">9</span> setups, <span class="num">6</span> dropped by triage</span></li>
+          <li><span class="t">14:01</span><span class="m"><span class="k">coin_brief</span> AAVE, PYTH, W</span></li>
+          <li><span class="t">14:01</span><span class="m"><span class="k">entry_check</span> AAVE long · <span class="up">6/7</span> · PYTH <span class="dn">spot fading</span></span></li>
+          <li><span class="t">14:01</span><span class="m"><span class="k">plan</span> key <span class="num">182.4</span> · stop <span class="num">179.9</span> · <span class="num">2.6R</span> · grade <span class="up">A</span></span></li>
+          <li><span class="t">14:02</span><span class="m"><span class="up">ENTERED</span> AAVE long · stop &amp; target resting on the exchange</span></li>
+          <li><span class="t">14:02</span><span class="m">grade A → twin placed on the <span class="am">real</span> account</span></li>
+          <li><span class="t">14:15</span><span class="m">health sheet: <span class="up">alive</span> · +0.4R · trader asked to close → <span class="dn">refused</span></span></li>
+          <li><span class="t">14:45</span><span class="m">health sheet: <span class="up">alive</span> · <span class="num">+1.1R</span></span></li>
+          <li><span class="t">14:45</span><span class="m">stop <span class="num">179.9</span> → <span class="num">181.6</span> · under the last swing low</span></li>
+        </ol>
+        <div class="log-foot">An example pass. The numbers are illustrative.</div>
+      </div>
+    </div>
+  </div>
+
+  <section id="desk">
+    <div class="wrap">
+      <p class="eyebrow">The AI desk</p>
+      <h2>The model makes the call. The server does the arithmetic.</h2>
+      <p class="intro">A language model is a good reader of a market and a poor calculator. So Relay splits the job: the relay computes every level, stop and R, and Claude decides what to do with them.</p>
+      <div class="grid c3">
+        <div class="cell"><span class="n">01 · SCAN</span><h3>Every fifteen minutes, the whole board</h3><p>Each time the board refreshes, the relay hands Claude one compact package: the hour, BTC's regime, every perp that moved, and the coins that broke out this morning and have since left the board.</p></div>
+        <div class="cell"><span class="n">02 · DECIDE</span><h3>By a playbook, with a grade</h3><p>The key level, the stops, the targets and the leverage the stop can carry come from code, not prose. The trader grades each setup A, B or C, and a C is no trade.</p></div>
+        <div class="cell"><span class="n">03 · MANAGE</span><h3>Read at every quarter-hour close</h3><p>A health sheet reads the open trade off the board. A close is accepted only when that reading says the trade is broken, not because the model was asked once too often.</p></div>
+      </div>
+      <div class="rails">
+        <div class="rail"><b>A stop only tightens.</b>Nothing the trader can say loosens one. After +1R the relay moves it under the last swing low itself.</div>
+        <div class="rail"><b>Paper first.</b>Every decision is made on the paper account. Real money copies the grades you pick, at the risk you type.</div>
+        <div class="rail"><b>Your loss limits still apply.</b>Every desk order goes through the same order path as yours, with the lockout and the red flags.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="mcp">
+    <div class="wrap">
+      <p class="eyebrow">MCP</p>
+      <h2>Plug Claude into your account.</h2>
+      <p class="intro">Relay speaks the Model Context Protocol. Make a token under <b>Keys &amp; account → Agent tokens</b>, choose which accounts it may see, and run your own playbook pass from a chat. A full pass is about eight calls.</p>
+      <div class="code">
+        <button class="copy" type="button" data-copy="claude mcp add --transport http trade4 https://trade4.xyz/mcp --header &quot;Authorization: Bearer sct_…&quot;">Copy</button>
+<pre><span class="c"># Claude Code</span>
+claude mcp add --transport http \
+  trade4 https://trade4.xyz/mcp \
+  --header <span class="s">"Authorization: Bearer sct_…"</span></pre>
+      </div>
+      <div class="tools">
+        <div class="tool"><code>scan_packet</code>The hour, BTC, the triaged board and the day's events in one call</div>
+        <div class="tool"><code>coin_brief</code>Up to eight coins digested: levels, OI, flow, liquidations, structure</div>
+        <div class="tool"><code>entry_check</code>A side's positioning and the setup's checklist, item by item</div>
+        <div class="tool"><code>plan</code>Stop, entries, targets, R and max leverage. Places nothing</div>
+        <div class="tool"><code>position_check</code>An open position: is it protected, where is liquidation, what exits apply</div>
+        <div class="tool"><code>get_trades · get_income</code>Every trade and the exchange's own PnL and fee ledger</div>
+        <div class="tool"><code>test_strategy</code>Put a rule to the archive and get an honest verdict</div>
+        <div class="tool w"><code>propose_trade</code>Hand the desk an entry from your chat, on paper</div>
+        <div class="tool w"><code>arm_paper_bot</code>Start a tested strategy as a bot, on paper</div>
+      </div>
+      <div class="legend"><span><i>■</i> reads</span><span><i class="w">■</i> acts, paper only</span><span>Real money is never reachable over MCP. It is a person's act in the browser.</span></div>
+    </div>
+  </section>
+
+  <section id="bots">
+    <div class="wrap">
+      <p class="eyebrow">Bots</p>
+      <h2>From a rule to a bot, without the backtest bragging.</h2>
+      <p class="intro">Write a rule in the Lab, put it to the archive, and read a verdict that gives the median, the paired up-and-down count and every objection, never a mean on its own. A rule that earns it becomes a bot.</p>
+      <div class="pipe">
+        <div class="cell"><span class="tag paper">lab</span><h3>Write the rule</h3><p>In the browser, or from a chat over MCP.</p></div>
+        <div class="cell"><span class="tag paper">lab</span><h3>Test it</h3><p>Every rule tested counts against the next verdict, so trying a hundred variants doesn't fake a result.</p></div>
+        <div class="cell"><span class="tag paper">paper</span><h3>Arm on paper</h3><p>The bot reads the board the way the backtest read the archive and manages exits the way the replay did.</p></div>
+        <div class="cell"><span class="tag live">live</span><h3>Arm live</h3><p>Your key is lent from your session and held in memory only. A stolen disk is inert.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="also">
+    <div class="wrap">
+      <p class="eyebrow">Also in the box</p>
+      <h2>Still a trading terminal.</h2>
+      <p class="intro">Everything the desk uses is there for a person too.</p>
+      <div class="grid c4">
+        <div class="cell"><h3>Size a trade</h3><p>Stop, size, leverage and take-profit from your risk, against live Binance data.</p></div>
+        <div class="cell"><h3>Loss limits that lock</h3><p>Hit the limit and trading closes. For you, the desk and every bot.</p></div>
+        <div class="cell"><h3>A journal</h3><p>What you planned at entry beside what the exchange filled, and what each trade cost.</p></div>
+        <div class="cell"><h3>iPhone</h3><p>A companion app with the trade ticket and your open positions.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Relay places orders on Binance USDT-M futures with your own API keys. Leveraged futures can lose more than you expect, quickly. Nothing here is financial advice, and this page deliberately shows no performance figures.</p>
+    <nav><a href="https://trade4.xyz">Open Relay</a><a href="#mcp">MCP</a></nav>
+  </div>
+</footer>
+
+<script>
+  // The desk log plays once, line by line; reduced motion shows it whole.
+  (function () {
+    var lines = document.querySelectorAll('#log li');
+    var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (still) { lines.forEach(function (l) { l.classList.add('on'); }); return; }
+    var i = 0;
+    (function next() {
+      if (i >= lines.length) return;
+      lines[i++].classList.add('on');
+      setTimeout(next, i === 6 || i === 7 ? 900 : 520);
+    })();
+  })();
+
+  document.querySelectorAll('.copy').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var done = function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1400); };
+      try { navigator.clipboard.writeText(b.dataset.copy).then(done, function () {}); } catch (e) {}
+    });
+  });
+</script>
+</body>
+</html>
