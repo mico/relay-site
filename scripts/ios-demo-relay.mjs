@@ -23,10 +23,10 @@ export const positions = specs.map(([symbol, qty, entry, pnl]) => ({symbol, posi
 const symbols = ['SOLUSDT', 'ETHUSDT', '1000PEPEUSDT', 'BTCUSDT'];
 const daily = [72, 118, -26, 184, 236, 312, 388];
 export const trades = daily.flatMap((net, d) => {
-  const amounts = d === 2 ? [-14, -12] : [net * .46, net * .32, net * .22];
+  const amounts = d === 2 ? [-14, -12] : d === 6 ? [net + 20 - 124.16, -20, 124.16] : [net * .46, net * .32, net * .22];
   return amounts.map((profit, i) => {
     const ts = today - (6 - d) * day + (i + 1) * 3600e3;
-    return {id: `demo-${d}-${i}`, symbol: symbols[(d+i)%4], side: i%2 ? 'short' : 'long', outcome: profit > 0 ? 'target' : 'stopped', ts, closedTs: ts + 1800e3, entry: 100, pnl: profit + 1.2, fee: 1.2, r: profit / 20, ai: `demo-ai-${d}-${i}`, grade: 'A', gradeComputed: 'A', gradeTagged: true, setup: i%2 ? 'failed_breakout' : 'failed_breakdown'};
+    return {id: `demo-${d}-${i}`, symbol: symbols[(d+i)%4], side: i%2 ? 'short' : 'long', outcome: profit > 0 ? 'target' : 'stopped', ts, closedTs: ts + 1800e3, entry: 100, pnl: profit + 1.2, fee: 1.2, r: profit / 20, ai: `demo-ai-${d}-${i}`, grade: i === 2 ? 'A' : 'B', gradeComputed: i === 2 ? 'A' : 'B', gradeTagged: true, setup: i%2 ? 'failed_breakout' : 'failed_breakdown'};
   });
 });
 export const realized = trades.reduce((sum, t) => sum + t.pnl - t.fee, 0);

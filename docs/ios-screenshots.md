@@ -13,7 +13,9 @@ horizontally on phones so each screenshot stays readable.
 - Four positions: PEPE short +$186; SOL long +$96; ETH long +$64;
   BTC long +$18. Three stops lock profit; the BTC stop risks $20.
 - Seven UTC days: +72, +118, -26, +184, +236, +312, +388.
-- 18 wins, 2 losses; median +2.8R; the $26 drawdown recovers the next day.
+- A and B grades are mixed throughout; the newest visible rows include an A win,
+  a B stop loss (-$20 / -1R), and a B win.
+- 17 wins, 3 losses; median +2.7R; the $26 drawdown recovers the next day.
 
 Account and trade values are illustrative. The chart uses unmodified historical
 market observations saved in `scripts/fixtures/pepe-market.json`: Binance
@@ -47,6 +49,11 @@ positions view, `--position`, and `--journal`. The explicit launch arguments
 avoid stale simulator preferences. Use `simctl status_bar` for 9:41, full Wi-Fi
 and cellular bars, and a full discharging battery. Wait for the charts to
 finish loading and inspect a second capture; simulator images can lag.
+
+The journal capture also uses the native `DrawdownArea` renderer fix
+([relay-terminal PR #660](https://github.com/mico/relay-terminal/pull/660)): shade
+only between the underwater curve and its peak, interpolating the recovery
+crossing instead of painting a full-height band through the recovery day.
 
 These assets were captured on iPhone 17 Pro at 1206×2622 with Relay 0.0.62,
 then encoded with `cwebp -q 92 -resize 804 1748 input.png -o output.webp`.
