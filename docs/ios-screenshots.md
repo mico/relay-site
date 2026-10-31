@@ -50,12 +50,14 @@ avoid stale simulator preferences. Use `simctl status_bar` for 9:41, full Wi-Fi
 and cellular bars, and a full discharging battery. Wait for the charts to
 finish loading and inspect a second capture; simulator images can lag.
 
-The journal capture also uses the native `DrawdownArea` renderer fix
-([relay-terminal PR #660](https://github.com/mico/relay-terminal/pull/660)): shade
-only between the underwater curve and its peak, interpolating the recovery
-crossing instead of painting a full-height band through the recovery day.
+The journal capture also uses the native `DrawdownSpan` renderer fix
+([relay-terminal PR #660](https://github.com/mico/relay-terminal/pull/660)): keep the original
+full-height red wash, ending at the interpolated recovery crossing rather
+than the recovery day’s close.
 
 These assets were captured on iPhone 17 Pro at 1206×2622 with Relay 0.0.62,
-then encoded with `cwebp -q 92 -resize 804 1748 input.png -o output.webp`.
+exported without the 186px system status area (clock, Wi-Fi and battery).
+All three app-only images are 804×1624, encoded with
+`cwebp -q 92 -crop 0 186 1206 2436 -resize 804 1624 input.png -o output.webp`.
 Stop the demo server and restore the original simulator app and preferences
 after capturing. The landing page is static; there is no build step.
