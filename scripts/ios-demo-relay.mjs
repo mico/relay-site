@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 // Read-only, localhost-only demo relay for the landing page's native iOS captures.
-// No credentials, exchange traffic, or trading writes.
+// No credentials, network market reads, or trading writes; serves a saved market snapshot.
 // Run: node scripts/ios-demo-relay.mjs [/absolute/path/to/relay-terminal]
 import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+const market = JSON.parse(await readFile(new URL('./fixtures/pepe-market.json', import.meta.url), 'utf8'));
+const pepeMark = Number(market.klines.at(-1)[4]);
+const pepeEntry = Number((pepeMark + 186 / 400000).toFixed(7));
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, join } from 'node:path';
 const terminal = resolve(process.argv[2] || fileURLToPath(new URL('../../relay-terminal', import.meta.url)));
@@ -10,7 +14,7 @@ const { seed } = await import(pathToFileURL(join(terminal, 'design/fixture.mjs')
 const now = Date.now(), day = 864e5, today = Math.floor(now / day) * day;
 export const deposit = 1000;
 const specs = [
-  ['1000PEPEUSDT', -400000, .00548, 186, .00553, .00530],
+  ['1000PEPEUSDT', -400000, pepeEntry, 186, Number((pepeEntry + .00005).toFixed(7)), .00520],
   ['SOLUSDT', 8, 178.40, 96, 175.90, 181.20],
   ['ETHUSDT', .8, 2286, 64, 2261, 2300],
   ['BTCUSDT', .02, 78400, 18, 77400, 77400],
@@ -33,15 +37,12 @@ function protection(symbol) {
   return {symbol:sym, algo:[{orderType:'STOP_MARKET', side:qty>0?'SELL':'BUY', positionSide:'BOTH', triggerPrice:String(current), closePosition:true, algoStatus:'NEW'}], plain:[], warnings:[], plan:{ts:today+3600e3,side:qty>0?'long':'short',entry,stop,tpR:12,why:'Demo capture'}};
 }
 function candles(url) {
-  const p=specs.find(p=>p[0]===url.searchParams.get('symbol')) ?? specs[0];
-  const mark=p[2]+p[3]/p[1], n=200, step=900e3, end=Math.floor(now/step)*step;
-  let prev=mark*1.12;
-  return Array.from({length:n},(_,i)=>{
-    const close=i === n-1 ? mark : mark*(1+.12*(1-i/(n-1))+.010*Math.sin(i*.38)+.005*Math.sin(i*1.7));
-    const o=prev; prev=close;
-    return [end-(n-1-i)*step,String(o),String(Math.max(o,close)*1.003),String(Math.min(o,close)*.997),String(i===n-1?mark:close),String(8e7*(.5+.5*Math.sin(i*1.23)**2)),end-(n-1-i)*step+step-1,'400000',900,'200000','200000','0'];
-  });
+  if (url.searchParams.get('symbol') !== market.symbol || url.searchParams.get('interval') !== market.interval) {
+    throw new Error('The screenshot market snapshot only covers 1000PEPEUSDT at 15m');
+  }
+  return market.klines;
 }
+
 const server=createServer((req,res)=>{
   const url=new URL(req.url,'http://localhost'), path=url.pathname;
   res.setHeader('Content-Type','application/json');
@@ -55,10 +56,12 @@ const server=createServer((req,res)=>{
     case '/api/bots': body={bots:[{id:'demo-bot',strategy:'oi-pump-long',slot:'paper',state:'armed',armedAt:today,armedBy:'demo',positions:{SOLUSDT:{dir:1},ETHUSDT:{dir:1}},fires:[],firedToday:3,realMoney:false}]}; break;
     case '/api/ai/trades': body={live:[]}; break;
     case '/api/session': body=seed.sessionRead(url,now); break;
-    case '/api/market/klines': body=candles(url); break;
+    case '/api/market/klines':
+      if(url.searchParams.get('symbol')!==market.symbol || url.searchParams.get('interval')!==market.interval){res.writeHead(404);body={error:'Snapshot only covers PEPE 15m'};} else body=candles(url);
+      break;
     case '/api/market/ticker24h': body=[{symbol:'BTCUSDT',lastPrice:'79300',priceChangePercent:'2.84'},{symbol:'ETHUSDT',lastPrice:'2366',priceChangePercent:'3.51'}]; break;
-    case '/api/market/openInterest': body=seed.openInterest(url,now); break;
-    case '/api/market/takerVolume': body=seed.takerVolume(url,now); break;
+    case '/api/market/openInterest': body={symbol:market.symbol,interval:market.interval,source:'coinglass',venues:['coinglass'],missing:[],rows:market.openInterest}; break;
+    case '/api/market/takerVolume': body={symbol:market.symbol,interval:market.interval,source:'coinglass',venue:'coinglass',market:'futures',rows:market.takerVolume}; break;
     case '/api/macd': body=seed.macd(url,now); break;
     default: res.writeHead(404); body={error:`Demo fixture does not serve ${path}`};
   }
